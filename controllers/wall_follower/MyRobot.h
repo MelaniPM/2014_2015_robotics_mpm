@@ -13,7 +13,7 @@
 using namespace std;
 using namespace webots;
 
-#define NUM_DISTANCE_SENSOR 3
+#define NUM_DISTANCE_SENSOR 4
 #define DISTANCE_LIMIT      100
 #define MAX_SPEED           50
 #define DESIRED_ANGLE       135.0

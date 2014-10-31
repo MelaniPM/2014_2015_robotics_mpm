@@ -27,8 +27,10 @@ MyRobot::MyRobot() : DifferentialWheels()
     _distance_sensor[0]->enable(_time_step);
     _distance_sensor[1] = getDistanceSensor("ds2");
     _distance_sensor[1]->enable(_time_step);
-    _distance_sensor[2] = getDistanceSensor("ds15");
+    _distance_sensor[2] = getDistanceSensor("ds14");
     _distance_sensor[2]->enable(_time_step);
+    _distance_sensor[3] = getDistanceSensor("ds1");
+    _distance_sensor[3]->enable(_time_step);
 }
 
 //////////////////////////////////////////////
@@ -45,14 +47,15 @@ MyRobot::~MyRobot()
 
 void MyRobot::run()
 {
-    double ir0_val = 0.0, ir2_val = 0.0, ir15_val = 0.0, compass_angle;
+    double ir0_val = 0.0, ir2_val = 0.0, ir14_val = 0.0,ir1_val = 0.0, compass_angle;
 
     while (step(_time_step) != -1) {
 
         // Read sensors and compass
         ir0_val = _distance_sensor[0]->getValue();
         ir2_val = _distance_sensor[1]->getValue();
-        ir15_val = _distance_sensor[2]->getValue();
+        ir14_val = _distance_sensor[2]->getValue();
+        ir1_val = _distance_sensor[3]->getValue();
         const double *compass_val = _my_compass->getValues();
 
         // Convert compass bearing vector to angle, in degrees
@@ -60,7 +63,7 @@ void MyRobot::run()
 
 
         //Show distance sensor values
-        cout << "ds15: " << ir15_val << " ds0: " << ir0_val << " ds2: " << ir2_val << endl;
+        cout << "ds14: " << ir14_val << "ds1: " << ir1_val << " ds0: " << ir0_val << " ds2: " << ir2_val << endl;
 
         // Robot control logic
         if (_mode == GOING_TO_INITIAL_POINT) {
@@ -68,7 +71,7 @@ void MyRobot::run()
 
             // When sufficiently close to a wall in front of robot,
             // switch mode to wall following
-            if ((ir0_val > DISTANCE_LIMIT) || (ir15_val > DISTANCE_LIMIT)) {
+            if ((ir0_val > DISTANCE_LIMIT -50) || (ir14_val > DISTANCE_LIMIT -20) || (ir1_val > DISTANCE_LIMIT -50)) {
                 _mode = WALL_FOLLOWER;
                 cout << "The desired initial position has been reached." << endl;
                 cout << "Mode " << WALL_FOLLOWER << ": Wall following mode activated" << endl;
@@ -77,17 +80,17 @@ void MyRobot::run()
         else {
 
             // Wall following
-            if ((ir0_val > DISTANCE_LIMIT) || (ir15_val > DISTANCE_LIMIT)) {
+            if ((ir0_val > DISTANCE_LIMIT - 50) || (ir14_val > DISTANCE_LIMIT -50) || (ir1_val > DISTANCE_LIMIT -50)) {
                 _mode = WALL_FOLLOWER;
                 cout << "Avoiding collision with a wall" << endl;
             }
             else {
-                if (ir2_val > DISTANCE_LIMIT - 20) {
+                if (ir2_val > DISTANCE_LIMIT + 50) {
                     _mode = TURN_RIGHT;
                     cout << "Turning left." << endl;
                 }
                 else {
-                    if (ir2_val < DISTANCE_LIMIT + 0) {
+                    if (ir2_val < DISTANCE_LIMIT - 50) {
                         _mode = TURN_LEFT;
                         cout << "Turning right." << endl;
                     }
@@ -134,7 +137,7 @@ void MyRobot::run()
                 break;
             case WALL_FOLLOWER:
                 _left_speed = -MAX_SPEED / 20.0;
-                _right_speed = -MAX_SPEED / 3.0;
+                _right_speed = -MAX_SPEED / 4.0;
                 break;
             default:
                 break;
