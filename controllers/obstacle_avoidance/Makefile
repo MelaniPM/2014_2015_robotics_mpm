@@ -25,7 +25,7 @@
 ###
 ### ---- C++ Sources ----
 ### if your program uses several C++ source files:
- CXX_SOURCES = MyRobot.cpp obstacle_avoidance.cpp
+CXX_SOURCES = MyRobot.cpp obstacle_avoidance.cpp
 ###
 ### ---- Compilation options ----
 ### if special compilation flags are necessary:

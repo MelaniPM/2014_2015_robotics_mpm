@@ -1,6 +1,6 @@
 /**
  * @file    MyRobot.cpp
- * @brief   A template for webots projects.
+ * @brief   cpp file to initialize the different functions and methods of the controller.
  *
  * @author  Melania Prieto
  * @date    2014-10
@@ -13,56 +13,35 @@
 
 MyRobot::MyRobot() : DifferentialWheels()
 {
+    //Constants definitions
     _time_step = 64;
-
     _left_speed = 0;
     _right_speed = 0;
 
+    //Initially the robot will be moving towards the other side of the world
     _mode = GOING_TO_FINAL_DESTINATION;
 
     //Get and enable the compass device and the distance sensors
     _my_compass = getCompass("compass");
     _my_compass->enable(_time_step);
 
-    _distance_sensor[0] = getDistanceSensor("ds0");
-    _distance_sensor[0]->enable(_time_step);
-    _distance_sensor[1] = getDistanceSensor("ds1");
-    _distance_sensor[1]->enable(_time_step);
-    _distance_sensor[2] = getDistanceSensor("ds2");
-    _distance_sensor[2]->enable(_time_step);
-    _distance_sensor[3] = getDistanceSensor("ds3");
-    _distance_sensor[3]->enable(_time_step);
-    _distance_sensor[4] = getDistanceSensor("ds4");
-    _distance_sensor[4]->enable(_time_step);
-    _distance_sensor[5] = getDistanceSensor("ds5");
-    _distance_sensor[5]->enable(_time_step);
-    _distance_sensor[6] = getDistanceSensor("ds6");
-    _distance_sensor[6]->enable(_time_step);
-    _distance_sensor[7] = getDistanceSensor("ds7");
-    _distance_sensor[7]->enable(_time_step);
-    _distance_sensor[8] = getDistanceSensor("ds8");
-    _distance_sensor[8]->enable(_time_step);
-    _distance_sensor[9] = getDistanceSensor("ds9");
-    _distance_sensor[9]->enable(_time_step);
-    _distance_sensor[10] = getDistanceSensor("ds10");
-    _distance_sensor[10]->enable(_time_step);
-    _distance_sensor[11] = getDistanceSensor("ds11");
-    _distance_sensor[11]->enable(_time_step);
-    _distance_sensor[12] = getDistanceSensor("ds12");
-    _distance_sensor[12]->enable(_time_step);
-    _distance_sensor[13] = getDistanceSensor("ds13");
-    _distance_sensor[13]->enable(_time_step);
-    _distance_sensor[14] = getDistanceSensor("ds14");
-    _distance_sensor[14]->enable(_time_step);
-    _distance_sensor[15] = getDistanceSensor("ds15");
-    _distance_sensor[15]->enable(_time_step);
+    for (int i = 0; i < NUM_MAX_DISTANCE_SENSOR; i++) {
+        //Here concatenation functions for strings are used, to group an string with an integer.
+        string str="ds";
+        stringstream ss;
+        ss<<i;
+        str+=ss.str();
+        _distance_sensor[i] = getDistanceSensor(str);
+        _distance_sensor[i]-> enable(_time_step);
+    }
 }
 
 //////////////////////////////////////////////
 
 MyRobot::~MyRobot()
 {
-    for (int i=0; i<NUM_DISTANCE_SENSOR; i++) {
+    //Disable compass and distance sensors
+    for (int i = 0; i < NUM_MAX_DISTANCE_SENSOR; i++) {
         _distance_sensor[i]->disable();
     }
     _my_compass->disable();
@@ -72,21 +51,23 @@ MyRobot::~MyRobot()
 
 void MyRobot::run()
 {
-    double ir0_val = 0.0, ir1_val = 0.0, ir2_val = 0.0, ir3_val = 0.0, ir12_val = 0.0, ir13_val = 0.0, ir14_val = 0.0, ir15_val = 0.0;
+    double ir[NUM_MAX_DISTANCE_SENSOR];
+    for (int i = 0; i < 4; i++) {
+        ir[i] = 0;
+    }
+    for (int i = 15; i > 11; i--) {
+        ir[i] = 0;
+    }
     double compass_angle;
 
     while (step(_time_step) != -1) {
-        // Read the sensors
-        ir0_val = _distance_sensor[0]->getValue();
-        ir1_val = _distance_sensor[1]->getValue();
-        ir2_val = _distance_sensor[2]->getValue();
-        ir3_val = _distance_sensor[3]->getValue();
-
-
-        ir12_val = _distance_sensor[12]->getValue();
-        ir13_val = _distance_sensor[13]->getValue();
-        ir14_val = _distance_sensor[14]->getValue();
-        ir15_val = _distance_sensor[15]->getValue();
+        // Read sensors and compass
+        for (int i = 0; i < 4; i++) {
+            ir[i] = _distance_sensor[i]-> getValue();
+        }
+        for (int i = 15; i > 11; i--) {
+            ir[i] = _distance_sensor[i]-> getValue();
+        }
         const double *compass_val = _my_compass->getValues();
 
         // Convert compass bearing vector to angle, in degrees
@@ -94,55 +75,56 @@ void MyRobot::run()
 
         // Print sensor values to console
         cout << "Compass angle (degrees): " << compass_angle << endl;
-        cout << ir0_val << " " <<ir1_val<<" "<<ir15_val<<" "<<ir14_val<<" "<<ir12_val<<endl;
+        cout << ir[0] << " " <<ir[1]<<" "<<ir[15]<<" "<<ir[14]<<" "<<ir[12]<<endl;
 
-
-
-            // Wall following
-            if (_mode = GOING_TO_FINAL_DESTINATION) {
-
-                if((ir15_val > DISTANCE_LIMIT - 50)||(ir0_val > DISTANCE_LIMIT - 50)||(ir14_val > DISTANCE_LIMIT - 50)||(ir1_val > DISTANCE_LIMIT - 50)||(ir13_val > DISTANCE_LIMIT - 50)||(ir2_val > DISTANCE_LIMIT - 50)){
-                    if ((ir15_val + 50 < ir0_val)||(ir14_val < ir1_val)){
-                    _mode=WALL_FOLLOWER_LEFT;
-                        cout << "0." << endl;
+        // Control logic of the robot
+        if (_mode == OBSTACLE_AVOID){
+            if ((ir[0]!=0)||(ir[15] != 0)||(ir[1]!=0)||(ir[14] != 0)){
+                //Continue avoiding collision if it detects something with the corresponding sensors
+                _mode = OBSTACLE_AVOID;
+                cout << "Avoiding collision." << endl;
+            }
+            else{
+                //If nothing is detected once the obstacle is avoided move to the left
+                _mode = TURN_RIGHT;
+            }
+        }
+        else{
+            if((ir[0] == 0)&&(ir[1] == 0)&&(ir[14] == 0)&&(ir[15] == 0)&&(ir[13] == 0)&&(ir[2] == 0)){
+                //If it is not detecting anything and not avoiding collision,the robot will try to reach 45º
+                _mode=GOING_TO_FINAL_DESTINATION;
+                cout << "Trying to reach the other side." << endl;
+            }
+            else{
+                if ((ir[0] < DISTANCE_LIMIT + 50 )&&(ir[14] < DISTANCE_LIMIT + 20)&&(ir[15] < DISTANCE_LIMIT + 50)&&(ir[1] < DISTANCE_LIMIT + 20)){
+                    if ((ir[1]>ir[14])||(ir[2]>ir[13]))
+                    {
+                        //Moving right
+                        _mode = TURN_RIGHT;
+                        cout << "Turning right" << endl;
                     }
                     else{
-                        _mode = WALL_FOLLOWER_RIGHT;
-                        cout << "Avoiding collision with a wall .1" << endl;
-                    }
-                }
-
-            }
-            else {
-
-                    if ((ir13_val > DISTANCE_LIMIT + 20)||(ir2_val < DISTANCE_LIMIT - 20)) {
+                        //Moving left
                         _mode = TURN_LEFT;
-                        cout << "Turning left. 2." << endl;
-                    }
-                    if ((ir13_val < DISTANCE_LIMIT - 20)||(ir2_val > DISTANCE_LIMIT + 20)) {
-                        _mode = TURN_RIGHT;
-                        cout << "Turning right. 3." << endl;
-                    }
-
-                    else {
-                        _mode = FORWARD;
-                        cout<<"BÑABÑA"<<endl;
+                        cout << "Turning left" << endl;
                     }
                 }
-
-
-
+                else{
+                    if ((ir[3] > DISTANCE_LIMIT )&&(ir[12]> DISTANCE_LIMIT)){
+                        //Change to obstacle avoiding method
+                        _mode = OBSTACLE_AVOID;
+                        cout << "Avoiding collision";
+                    }
+                    else {
+                        //Backing up
+                        _mode = BACKWARDS;
+                    }
+                }
+            }
+        }
 
         // Send actuators commands according to the mode
         switch (_mode){
-        case WALL_FOLLOWER_RIGHT:
-            _left_speed = - MAX_SPEED/5.0;
-            _right_speed = - MAX_SPEED/20.0;
-            break;
-        case WALL_FOLLOWER_LEFT:
-            _left_speed = - MAX_SPEED/20.0;
-            _right_speed = - MAX_SPEED/5.0;
-            break;
         case STOP:
             _left_speed = 0;
             _right_speed = 0;
@@ -153,40 +135,25 @@ void MyRobot::run()
             break;
 
         case GOING_TO_FINAL_DESTINATION:
-            if (compass_angle < (DESIRED_ANGLE - 2)) {
-                // Turn right
-                _left_speed = MAX_SPEED;
-                _right_speed = MAX_SPEED - 20;
-            }
-            else {
-                if (compass_angle > (DESIRED_ANGLE + 2)) {
-                    // Turn left
-                    _left_speed = MAX_SPEED - 20;
-                    _right_speed = MAX_SPEED;
-                }
-                else {
-                    // Move straight forward
-                    _left_speed = MAX_SPEED;
-                    _right_speed = MAX_SPEED;
-                }
-            }
+            final_destination(compass_angle,ir[12], ir[13]);
             break;
         case TURN_LEFT:
             _left_speed = MAX_SPEED/ 4.0;
-            _right_speed = MAX_SPEED/1.25;
+            _right_speed = MAX_SPEED/ 1.25;
             break;
         case TURN_RIGHT:
             _left_speed = MAX_SPEED/1.25;
             _right_speed = MAX_SPEED /4;
             break;
-        case OBSTACLE_AVOID_LEFT:
-            _left_speed = -MAX_SPEED / 4.0;
-            _right_speed = -MAX_SPEED / 20.0;
+        case OBSTACLE_AVOID:
+            _left_speed = -MAX_SPEED / 15.0;
+            _right_speed = -MAX_SPEED / 1.5;
             break;
-        case OBSTACLE_AVOID_RIGHT:
-            _left_speed = -MAX_SPEED / 20.0;
-            _right_speed = -MAX_SPEED / 4.0;
+        case BACKWARDS:
+            _left_speed = -MAX_SPEED;
+            _right_speed = -MAX_SPEED;
             break;
+
         default:
             break;
         }
@@ -209,4 +176,44 @@ double MyRobot::convert_bearing_to_degrees(const double* in_vector)
 
 //////////////////////////////////////////////
 
+void MyRobot::final_destination(const double compass, const int sensor1, const int sensor2)
+{
+    if (compass < (DESIRED_ANGLE - 2)) {
+        if (sensor1 != 0){
+            // Turn left
+            _left_speed = MAX_SPEED- 20;
+            _right_speed = MAX_SPEED;
+            cout << "LEFT" << endl;
+        }
+        else{
+            // Turn right
+            _left_speed = MAX_SPEED;
+            _right_speed = MAX_SPEED - 20;
+            cout << "RIGHT" << endl;
+        }
+    }
+    else {
+        if (compass > (DESIRED_ANGLE + 2)) {
+            if (sensor2 != 0){
+                // Turn right
+                _left_speed = MAX_SPEED;
+                _right_speed = MAX_SPEED - 20;
+                cout << "RIGHT" << endl;
+            }
+            else{
+                // Turn left
+                _left_speed = MAX_SPEED - 20;
+                _right_speed = MAX_SPEED;
+                cout << "LEFT" << endl;
+            }
+        }
+        else {
+            // Move straight forward
+            _left_speed = MAX_SPEED;
+            _right_speed = MAX_SPEED;
+            cout << "FORWARD" << endl;
+        }
+    }
+}
 
+//////////////////////////////////////////////////////
